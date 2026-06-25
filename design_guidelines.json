@@ -1,0 +1,100 @@
+{
+  "theme": "dark",
+  "archetype": "Swiss & High-Contrast (Archetype 4) - Mission Control / Data Journalism",
+  "description": "A serious, data-dense smart city environmental intelligence platform. The design prioritizes operational clarity, high-contrast data visualization, and a 'mission control' aesthetic over generic SaaS patterns. It uses rigid grids, flat surfaces with sharp or minimal radii, and high-visibility data accents on a deep obsidian background.",
+  "colors": {
+    "background": "#0A0A0A",
+    "surface_primary": "#141414",
+    "surface_secondary": "#1A1A1A",
+    "border_subtle": "rgba(255, 255, 255, 0.1)",
+    "border_focus": "rgba(255, 255, 255, 0.3)",
+    "text_primary": "#FFFFFF",
+    "text_secondary": "#A1A1AA",
+    "text_muted": "#71717A",
+    "brand_accent": "#EAB308",
+    "aqi_scale": {
+      "good": "#22C55E",
+      "moderate": "#EAB308",
+      "poor": "#F97316",
+      "unhealthy": "#EF4444",
+      "severe": "#991B1B",
+      "hazardous": "#7F1D1D"
+    }
+  },
+  "typography": {
+    "fonts": {
+      "heading": "Cabinet Grotesk, sans-serif",
+      "body": "IBM Plex Sans, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "hierarchy": {
+      "h1": "text-4xl md:text-5xl font-bold tracking-tighter",
+      "h2": "text-2xl md:text-3xl font-semibold tracking-tight",
+      "h3": "text-xl md:text-2xl font-medium tracking-tight",
+      "body": "text-sm md:text-base leading-relaxed font-normal",
+      "metric_value": "font-mono text-3xl md:text-4xl font-semibold tracking-tight",
+      "metric_label": "text-xs font-semibold uppercase tracking-[0.2em] text-[#A1A1AA]"
+    },
+    "guidelines": "Do not use Inter. Ensure all major KPIs and tabular data use the monospace font for alignment. Use tracking-tighter for large headings."
+  },
+  "layout_patterns": {
+    "grid_system": "Mode B: Control Room Grid. Base grid of 12 columns (lg:grid-cols-12). Use tight spacing (gap-4 or gap-6).",
+    "container_spacing": "Generous outer padding (p-6 or p-8) to frame the dashboard. Internal card padding should be dense (p-4 or p-5) to maximize data density.",
+    "alignment": "Strict left-alignment for data and metrics. Optical alignment for icons next to text.",
+    "surfaces": "Flat solid surfaces only. No glassmorphism in the main data view to avoid visual refraction of metrics. Borders should be crisp 1px solid."
+  },
+  "components": {
+    "cards": {
+      "style": "bg-[#141414] border border-white/10 rounded-sm shadow-none",
+      "header": "border-b border-white/10 pb-3 mb-4",
+      "hover_state": "hover:border-white/30 transition-colors duration-200"
+    },
+    "buttons": {
+      "primary": "bg-white text-black hover:bg-gray-200 rounded-sm px-4 py-2 font-medium transition-colors",
+      "secondary": "bg-transparent border border-white/20 text-white hover:bg-white/10 rounded-sm px-4 py-2 font-medium transition-colors",
+      "danger": "bg-[#7F1D1D] text-white hover:bg-[#991B1B] rounded-sm px-4 py-2 transition-colors"
+    },
+    "badges": {
+      "style": "px-2.5 py-0.5 rounded-sm text-xs font-mono font-medium uppercase tracking-wider border"
+    },
+    "tables": {
+      "header": "text-xs uppercase tracking-wider text-white/60 border-b border-white/10 pb-2",
+      "row": "border-b border-white/5 hover:bg-white/5 transition-colors text-sm",
+      "cell": "py-3 align-middle"
+    },
+    "charts": {
+      "grid_lines": "stroke-white/10 stroke-dasharray-3",
+      "tooltip": "bg-[#0A0A0A] border border-white/20 text-white rounded-sm shadow-xl",
+      "lines": "Use neon-like data lines (e.g., brand_accent or aqi colors) with high contrast against the dark background."
+    }
+  },
+  "motion_and_interactions": {
+    "hover": "Subtle border brightening and micro-translations (e.g., -translate-y-[1px]).",
+    "transitions": "Use fast, crisp transitions (duration-150 or duration-200 ease-out). Avoid slow, floaty animations.",
+    "data_loading": "Use monospace ASCII art loaders or sharp skeleton screens (bg-white/5 animate-pulse)."
+  },
+  "media": {
+    "images": [
+      {
+        "category": "hero_background",
+        "url": "https://images.pexels.com/photos/14523799/pexels-photo-14523799.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Foggy morning scene with pedestrians near India Gate in New Delhi. Use with a heavy dark overlay (bg-black/80) to provide atmospheric context without sacrificing readability."
+      },
+      {
+        "category": "contextual_urban",
+        "url": "https://images.pexels.com/photos/5380870/pexels-photo-5380870.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Drone shot capturing the dense urban sprawl of New Delhi. Useful for the Enforcement / Hotspot map background or secondary context."
+      }
+    ],
+    "icons_library": "lucide-react (Use crisp, technical icons like Activity, Map, AlertTriangle, ShieldAlert, Wind, ActivitySquare)"
+  },
+  "instructions_to_main_agent": [
+    "Build a 'Mission Control' style dashboard. Avoid standard SaaS layouts. The interface should feel data-dense and operational.",
+    "Incorporate a ward-level map component. If a real map library isn't feasible, build a high-fidelity interactive data visualization representing the map.",
+    "Implement the 'Hyperlocal Predictive AQI Forecasting' chart using Recharts. Show historical data, predicted forecast, and a persistence baseline. Display the RMSE metric prominently.",
+    "Build an 'Enforcement Recommendations' table. Include columns for Hotspot Location, Correlated Source (Permits, Industrial, Fleet), Priority Level, and Action button.",
+    "Create bilingual (English/Hindi) 'Citizen Health Risk Advisory' cards driven by Gemini 3 Flash mock data.",
+    "Ensure all interactive elements have 'data-testid' attributes (e.g., data-testid='forecast-tab-72h').",
+    "Do NOT use Inter font. Do NOT use purple gradients. Use sharp 1px borders, deep blacks, and monospace data typography."
+  ]
+}
