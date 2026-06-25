@@ -65,7 +65,7 @@ export const Copilot = ({ wardId }) => {
           <div className="relative w-full md:w-[480px] h-[75vh] md:h-full bg-[#0A0A0A] border-l border-white/10 flex flex-col">
             <div className="border-b border-white/10 px-5 py-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-sm bg-[#EAB308] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-sm bg-white flex items-center justify-center">
                   <Bot className="w-4 h-4 text-black" />
                 </div>
                 <div>

@@ -52,7 +52,7 @@ export const KPIStrip = ({ kpis }) => {
         testid="kpi-accuracy"
         label="Forecast Accuracy"
         value={`${kpis.forecast_accuracy_pct}%`}
-        sub={`Baseline ${kpis.baseline_accuracy_pct}% · RMSE ${kpis.rmse_model}`}
+        sub={`Baseline ${kpis.baseline_accuracy_pct}% · 1 − RMSE/μ-AQI · RMSE ${kpis.rmse_model}`}
         icon={Zap}
         accent="#FFFFFF"
       />
