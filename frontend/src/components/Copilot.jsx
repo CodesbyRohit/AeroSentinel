@@ -7,10 +7,10 @@ import { Sparkles, Send, X, Loader2, Bot } from "lucide-react";
  * using Gemini 3 Flash with the AeroSentinel state as context.
  */
 const SUGGESTED = [
-  "Why did AQI spike today?",
-  "Which industries should we inspect first?",
-  "Should schools in Jahangirpuri close?",
-  "What's the dominant pollution source citywide?",
+  "Why is Anand Vihar severe?",
+  "Which ward needs inspection first?",
+  "Show highest-risk schools.",
+  "Generate today's enforcement plan.",
 ];
 
 export const Copilot = ({ wardId }) => {
@@ -49,10 +49,11 @@ export const Copilot = ({ wardId }) => {
       <button
         data-testid="copilot-fab"
         onClick={() => setOpen(true)}
-        className="fixed bottom-20 right-6 z-50 group bg-white text-black hover:bg-[#EAB308] rounded-sm border border-white/20 px-4 py-3 shadow-2xl transition-colors flex items-center gap-2 font-mono-data text-xs uppercase tracking-wider"
+        className="fixed bottom-20 right-6 z-50 group bg-white text-black hover:bg-[#22C55E] rounded-sm border-2 border-white px-5 py-3.5 shadow-[0_0_40px_rgba(255,255,255,0.25)] transition-all flex items-center gap-2.5 font-mono-data text-xs uppercase tracking-wider hover:scale-105"
       >
         <Sparkles className="w-4 h-4" />
-        Ask Copilot
+        Ask AeroCopilot
+        <span className="hidden md:inline-block w-1.5 h-1.5 rounded-full bg-[#22C55E] pulse-dot ml-1" />
       </button>
 
       {open && (
@@ -150,7 +151,7 @@ export const Copilot = ({ wardId }) => {
                 data-testid="copilot-send"
                 type="submit"
                 disabled={!input.trim() || busy}
-                className="px-3 py-2 bg-white text-black hover:bg-[#EAB308] rounded-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-3 py-2 bg-white text-black hover:bg-[#22C55E] rounded-sm disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Send className="w-4 h-4" />
               </button>

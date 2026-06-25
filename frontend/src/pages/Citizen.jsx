@@ -3,9 +3,11 @@ import { PortalNav } from "@/components/PortalNav";
 import { AdvisoryPanel } from "@/components/AdvisoryPanel";
 import { ComplaintForm } from "@/components/ComplaintForm";
 import { TrustBadge } from "@/components/TrustBadge";
+import { AQICard } from "@/components/AQICard";
+import { RecommendedActions } from "@/components/RecommendedActions";
 import { Copilot } from "@/components/Copilot";
 import { Toaster } from "@/components/ui/sonner";
-import { api, bandColor, bandLabel } from "@/lib/api";
+import { api, bandLabel } from "@/lib/api";
 
 export default function Citizen() {
   const [wards, setWards] = useState([]);
@@ -36,54 +38,35 @@ export default function Citizen() {
           </p>
         </section>
 
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-4">
-            <div className="bg-[#141414] border border-white/10 rounded-sm p-5">
-              <div className="font-mono-data text-[10px] uppercase tracking-[0.18em] text-white/50 mb-3">
-                Select your ward
-              </div>
-              <select
-                data-testid="citizen-ward-select"
-                value={wardId}
-                onChange={(e) => setWardId(e.target.value)}
-                className="w-full bg-[#0A0A0A] border border-white/10 rounded-sm px-3 py-2.5 text-sm focus:outline-none focus:border-white/30 text-white mb-4"
-              >
-                {wards.map((w) => (
-                  <option key={w.id} value={w.id}>
-                    {w.name} · {w.current_aqi} ({bandLabel(w.band)})
-                  </option>
-                ))}
-              </select>
+        <section>
+          <div className="bg-[#141414] border border-white/10 rounded-sm p-5 mb-6">
+            <div className="font-mono-data text-[10px] uppercase tracking-[0.18em] text-white/50 mb-3">
+              Select your ward
+            </div>
+            <select
+              data-testid="citizen-ward-select"
+              value={wardId}
+              onChange={(e) => setWardId(e.target.value)}
+              className="w-full md:w-96 bg-[#0A0A0A] border border-white/10 rounded-sm px-3 py-2.5 text-sm focus:outline-none focus:border-white text-white"
+            >
+              {wards.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name} · {w.current_aqi} ({bandLabel(w.band)})
+                </option>
+              ))}
+            </select>
+          </div>
+        </section>
 
-              {ward && (
-                <div className="border-t border-white/5 pt-4">
-                  <div className="flex items-baseline gap-3 mb-3">
-                    <div className="font-mono-data text-5xl tabular font-semibold" style={{ color: bandColor(ward.band) }}>
-                      {ward.current_aqi}
-                    </div>
-                    <div>
-                      <div
-                        className="font-mono-data text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm border inline-block"
-                        style={{
-                          color: bandColor(ward.band),
-                          borderColor: `${bandColor(ward.band)}66`,
-                          background: `${bandColor(ward.band)}1a`,
-                        }}
-                      >
-                        {bandLabel(ward.band)}
-                      </div>
-                      <div className="font-mono-data text-[10px] uppercase tracking-wider text-white/40 mt-1">
-                        24h peak forecast: {ward.forecast_peak_24h}
-                      </div>
-                    </div>
-                  </div>
-                  <TrustBadge wardId={wardId} />
-                </div>
-              )}
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-5">
+            <AQICard wardId={wardId} />
+            <div className="mt-4">
+              <TrustBadge wardId={wardId} />
             </div>
           </div>
-
-          <div className="lg:col-span-8">
+          <div className="lg:col-span-7 space-y-6">
+            <RecommendedActions wardId={wardId} />
             <AdvisoryPanel wardId={wardId} wardName={ward?.name || ""} />
           </div>
         </section>

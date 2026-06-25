@@ -1,0 +1,31 @@
+{
+  "summary": "Iteration 4 polish verified end-to-end. Backend: 14/14 pytest pass — /api/kpis exposes forecast_accuracy_pct (~96.1%), baseline_accuracy_pct, disclosure_mode='Hybrid Demonstration Mode' with CPCB/OpenAQ in disclosure_live, all 4 simulated items (enforcement, registry, inspector, scorecards), and a government-dataset reason. /api/recommended-actions/AV returns 4 actions for Anand Vihar with rank/driver/driver_pct/action/expected_reduction/lead_time_hours/executable, expected_total_reduction>0 and projected_aqi_post_intervention<forecast_peak_24h. Regression: wards, forecast/AV, enforcement, advisory/AV, complaints, hotspots, impact, risks, polluters, copilot/chat, notice — all 200. Frontend (Playwright on preview URL): Landing renders CopilotHero with 'right now' headline, HybridDisclosure with Live + Simulated; a suggested-question click triggers Gemini, copilot-hero-answer renders question + answer + context. Command Center shows HybridDisclosure top-right, kpi-accuracy='96.1%' (kpi-rmse removed), CopilotHero present, AQICard aqi-card-AV with 3 forecast steps + confidence + drivers, RecommendedActions with expected-reduction='−56 AQI', 4 action rows, projected-aqi=276 (<peak). Citizen: ward switch to JP swaps both AQICard + RecommendedActions. Copilot FAB labelled 'Ask AeroCopilot', white bg with hover:bg-[#22C55E] + green pulse dot; drawer suggestions exactly match the spec'd 4. Color discipline verified: EnforcementTable ack-btn, Inspector Mark Dispatched, CopilotHero send, NoticeDialog Copy — all use hover:bg-[#22C55E].",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Copilot drawer", "issues": ["Bot avatar in drawer header still uses bg-[#EAB308] (yellow). Spec says reserve yellow/avoid on action surfaces; this is decorative not an action button, so likely OK, but it is the only yellow remaining on the new Copilot surface."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_v3_polish.py",
+    "/app/test_reports/pytest/v3_results.xml"
+  ],
+  "action_items": [
+    "OPTIONAL: Recolor the AeroCopilot bot avatar in Copilot.jsx drawer header (currently bg-[#EAB308]) to white or green to match the new color discipline.",
+    "OPTIONAL: A React hydration warning fires on the Citizen ward <select> because an instrumentation layer is injecting <span> children into <option>. Not a real bug in app code — caused by emergent tooling injecting x-source spans. Can be ignored unless productionising."
+  ],
+  "critical_code_review_comments": [
+    "server.py is ~1170 lines and continues to grow past the 700-line guideline — split recommended (e.g., gemini_clients.py, registry.py, kpis_routes.py, recommendations.py).",
+    "RecommendedActions LEVER table is hardcoded inside the route — extract to a module-level constant for testability and so the same lever mapping can be reused by the AeroCopilot system prompt as ground truth.",
+    "kpi-accuracy is derived as 1 - RMSE/avg_city_AQI which inflates the score when AQI is high; consider a more standard MAPE or symmetric formulation, and surface the formula in the Methodology note so reviewers can audit it."
+  ],
+  "updated_files": ["/app/backend/tests/test_v3_polish.py"],
+  "success_rate": {"backend": "100% (14/14)", "frontend": "100% on all 6 polish behaviours"},
+  "test_credentials": "N/A — no auth",
+  "seed_data_creation": "Inspector REC-1001 toggled to dispatched during run; POST /api/enforcement/reset clears.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "test_v3_polish.py is the iteration-4 regression suite; test_v2_endpoints.py from iter-3 still applies. EnforcementTable's dispatch button data-testid is 'ack-btn-{rec_id}' (NOT 'enforcement-ack-{id}'). Inspector dispatch uses 'inspector-ack-{rec_id}'. CopilotHero suggested-question testids are 'copilot-hero-suggest-{first8chars}', and Copilot drawer suggestions are 'copilot-suggest-{first10chars}'. Both share the same 4 questions. Live OpenAQ blend not active (no key) — DATA_MODE stays 'synthetic_seeded' and disclosure_mode stays 'Hybrid Demonstration Mode'."
+}

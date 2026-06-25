@@ -159,7 +159,7 @@ export default function Inspector() {
                     <button
                       data-testid={`inspector-ack-${r.id}`}
                       onClick={() => ack(r.id)}
-                      className="font-mono-data text-xs uppercase tracking-wider px-4 py-2 bg-white text-black hover:bg-[#EAB308] rounded-sm transition-colors"
+                      className="font-mono-data text-xs uppercase tracking-wider px-4 py-2 bg-white text-black hover:bg-[#22C55E] rounded-sm transition-colors"
                     >
                       Mark Dispatched
                     </button>

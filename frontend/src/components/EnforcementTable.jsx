@@ -116,7 +116,7 @@ export const EnforcementTable = () => {
                           <button
                             data-testid={`ack-btn-${r.id}`}
                             onClick={(e) => { e.stopPropagation(); ack(r.id); }}
-                            className="font-mono-data text-[10px] uppercase tracking-wider px-3 py-1.5 bg-white text-black hover:bg-[#EAB308] rounded-sm transition-colors"
+                            className="font-mono-data text-[10px] uppercase tracking-wider px-3 py-1.5 bg-white text-black hover:bg-[#22C55E] rounded-sm transition-colors"
                           >
                             Dispatch ↗
                           </button>

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { PortalNav } from "@/components/PortalNav";
 import { ImpactMetrics } from "@/components/ImpactMetrics";
+import { CopilotHero } from "@/components/CopilotHero";
+import { HybridDisclosure } from "@/components/HybridDisclosure";
 import { Copilot } from "@/components/Copilot";
 import { api, bandColor, bandLabel } from "@/lib/api";
 import { ArrowRight, ShieldAlert, User, Hammer, AlertTriangle } from "lucide-react";
@@ -23,10 +25,10 @@ export default function Landing() {
 
       <main className="max-w-[1600px] mx-auto px-6 lg:px-8 py-8 space-y-10" data-testid="landing-main">
 
-        {/* HERO — 5-second comprehension */}
+        {/* HERO */}
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pt-4">
           <div className="lg:col-span-7">
-            <div className="font-mono-data text-[10px] uppercase tracking-[0.3em] text-[#EAB308] mb-4">
+            <div className="font-mono-data text-[10px] uppercase tracking-[0.3em] text-white/50 mb-4">
               Why this matters · today
             </div>
             <h1 className="font-display text-5xl md:text-6xl lg:text-7xl font-bold tracking-tighter leading-[0.92]">
@@ -37,9 +39,7 @@ export default function Landing() {
               <span className="text-white/40"> today.</span>
             </h1>
             <p className="text-base md:text-lg text-white/60 max-w-2xl mt-6 leading-relaxed">
-              AeroSentinel turns ward-level air signals into ranked enforcement
-              actions and bilingual citizen advisories — in under six hours from
-              signal to dispatch. Below: what we are doing about it right now.
+              AeroSentinel turns ward-level air signals into ranked enforcement actions and bilingual citizen advisories — in under six hours from signal to dispatch. Below: what we are doing about it right now.
             </p>
           </div>
 
@@ -47,6 +47,9 @@ export default function Landing() {
             <CitywideStatusCard kpis={kpis} />
           </div>
         </section>
+
+        {/* COPILOT HERO — center-stage AI */}
+        <CopilotHero />
 
         {/* IMPACT METRICS */}
         <section>
@@ -68,7 +71,7 @@ export default function Landing() {
               <Link
                 to="/command"
                 data-testid="landing-to-command"
-                className="flex items-center gap-2 font-mono-data text-xs uppercase tracking-wider px-4 py-2.5 bg-white text-black hover:bg-[#EAB308] rounded-sm transition-colors"
+                className="flex items-center gap-2 font-mono-data text-xs uppercase tracking-wider px-4 py-2.5 bg-white text-black hover:bg-[#22C55E] rounded-sm transition-colors"
               >
                 Open Command Center <ArrowRight className="w-3.5 h-3.5" />
               </Link>
@@ -94,7 +97,6 @@ export default function Landing() {
               kicker="Operations"
               title="Command Center"
               desc="Live map, hotspots, forecast model, prioritised enforcement queue with one-click dispatch. The pollution war room."
-              accent="#EAB308"
             />
             <PortalCard
               to="/citizen"
@@ -103,7 +105,6 @@ export default function Landing() {
               kicker="Citizens · 3M+ served"
               title="Citizen Portal"
               desc="Bilingual ward-level advisory, evidence-based complaint submission with AI-analysed photos, real-time risk."
-              accent="#22C55E"
             />
             <PortalCard
               to="/inspector"
@@ -112,9 +113,14 @@ export default function Landing() {
               kicker="Field"
               title="Inspector Queue"
               desc="Sorted dispatch list with evidence trace and auto-drafted notices. Built for tablet, designed for field workflows."
-              accent="#F97316"
             />
           </div>
+        </section>
+
+        {/* DISCLOSURE */}
+        <section>
+          <SectionLabel kicker="Methodology" title="What is real · what is simulated." />
+          <HybridDisclosure />
         </section>
 
         <footer className="pt-10 pb-6 border-t border-white/5 text-xs font-mono-data text-white/40 uppercase tracking-wider flex items-center justify-between flex-wrap gap-3">
@@ -131,7 +137,7 @@ export default function Landing() {
 
 const SectionLabel = ({ kicker, title }) => (
   <div className="mb-5">
-    <div className="font-mono-data text-[10px] uppercase tracking-[0.22em] text-[#EAB308] mb-2">
+    <div className="font-mono-data text-[10px] uppercase tracking-[0.22em] text-white/50 mb-2">
       {kicker}
     </div>
     <div className="font-display text-2xl md:text-3xl tracking-tight">{title}</div>
@@ -167,8 +173,8 @@ const CitywideStatusCard = ({ kpis }) => {
         </div>
       </div>
       <div className="grid grid-cols-3 gap-3 pt-4 border-t border-white/5">
-        <StatusCell label="Hotspots" value={kpis.hotspots_count} accent="#F97316" />
-        <StatusCell label="Pending actions" value={kpis.enforcement_pending} accent="#EAB308" />
+        <StatusCell label="Hotspots" value={kpis.hotspots_count} accent="#EF4444" />
+        <StatusCell label="Pending actions" value={kpis.enforcement_pending} accent="#FFFFFF" />
         <StatusCell label="Signal→Action" value={`${kpis.signal_to_intervention.current_hours}h`} accent="#22C55E" />
       </div>
     </div>
@@ -182,14 +188,14 @@ const StatusCell = ({ label, value, accent }) => (
   </div>
 );
 
-const PortalCard = ({ to, testid, icon: Icon, kicker, title, desc, accent }) => (
+const PortalCard = ({ to, testid, icon: Icon, kicker, title, desc }) => (
   <Link
     to={to}
     data-testid={testid}
-    className="group bg-[#141414] border border-white/10 hover:border-white/30 rounded-sm p-6 transition-colors block"
+    className="group bg-[#141414] border border-white/10 hover:border-white/40 rounded-sm p-6 transition-colors block"
   >
     <div className="flex items-start justify-between mb-4">
-      <div className="font-mono-data text-[10px] uppercase tracking-[0.22em]" style={{ color: accent }}>
+      <div className="font-mono-data text-[10px] uppercase tracking-[0.22em] text-white/50">
         {kicker}
       </div>
       <Icon className="w-5 h-5 text-white/40 group-hover:text-white transition-colors" strokeWidth={1.5} />

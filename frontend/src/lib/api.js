@@ -33,6 +33,8 @@ export const api = {
     client.post("/copilot/chat", { question, ward_id: wardId }).then((r) => r.data),
   submitComplaint: (payload) => client.post("/complaints", payload).then((r) => r.data),
   listComplaints: () => client.get("/complaints").then((r) => r.data),
+  recommendedActions: (wardId) =>
+    client.get(`/recommended-actions/${wardId}`).then((r) => r.data),
 };
 
 export const bandColor = (band) =>

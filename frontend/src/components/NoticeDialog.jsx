@@ -71,7 +71,7 @@ export const NoticeDialog = ({ recId, recLabel }) => {
               onClick={onCopy}
               data-testid={`notice-copy-${recId}`}
               disabled={!data}
-              className="font-mono-data text-[10px] uppercase tracking-wider px-3 py-1.5 bg-white text-black hover:bg-[#EAB308] rounded-sm disabled:opacity-40"
+              className="font-mono-data text-[10px] uppercase tracking-wider px-3 py-1.5 bg-white text-black hover:bg-[#22C55E] rounded-sm disabled:opacity-40"
             >
               {copied ? (
                 <><Check className="w-3 h-3 inline mr-1" /> Copied</>

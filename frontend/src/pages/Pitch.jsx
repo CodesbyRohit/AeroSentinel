@@ -179,7 +179,7 @@ export default function Pitch() {
           data-testid="pitch-next"
           onClick={() => setI((x) => Math.min(SLIDES.length - 1, x + 1))}
           disabled={i === SLIDES.length - 1}
-          className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-sm hover:bg-[#EAB308] disabled:opacity-30 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-sm hover:bg-[#22C55E] disabled:opacity-30 disabled:cursor-not-allowed"
         >
           NEXT <ArrowRight className="w-3.5 h-3.5" />
         </button>

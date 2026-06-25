@@ -214,7 +214,7 @@ export const ComplaintForm = ({ wards = [] }) => {
           data-testid="complaint-submit"
           onClick={submit}
           disabled={busy || !base64}
-          className="font-mono-data text-xs uppercase tracking-wider px-5 py-2.5 bg-white text-black hover:bg-[#EAB308] rounded-sm disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+          className="font-mono-data text-xs uppercase tracking-wider px-5 py-2.5 bg-white text-black hover:bg-[#22C55E] rounded-sm disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
         >
           {busy ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Analysing…</> : "Submit complaint"}
         </button>

@@ -49,12 +49,12 @@ export const KPIStrip = ({ kpis }) => {
         accent="#F97316"
       />
       <Card
-        testid="kpi-rmse"
-        label="Forecast RMSE (vs baseline)"
-        value={kpis.rmse_model}
-        sub={`Persistence ${kpis.rmse_persistence} · −${kpis.rmse_improvement_pct}%`}
+        testid="kpi-accuracy"
+        label="Forecast Accuracy"
+        value={`${kpis.forecast_accuracy_pct}%`}
+        sub={`Baseline ${kpis.baseline_accuracy_pct}% · RMSE ${kpis.rmse_model}`}
         icon={Zap}
-        accent="#EAB308"
+        accent="#FFFFFF"
       />
       <Card
         testid="kpi-pending"
