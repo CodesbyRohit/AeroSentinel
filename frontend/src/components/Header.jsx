@@ -1,4 +1,5 @@
 import { Activity, Radio } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export const Header = () => {
   return (
@@ -26,7 +27,13 @@ export const Header = () => {
             <Radio className="w-3.5 h-3.5 text-[#22C55E] pulse-dot" />
             <span>14 wards · live</span>
           </div>
-          <div className="text-white/40">v1.0 · demo build</div>
+          <Link
+            to="/pitch"
+            data-testid="pitch-link"
+            className="px-3 py-1.5 border border-white/20 hover:border-white/50 text-white/80 hover:text-white rounded-sm transition-colors"
+          >
+            Pitch Deck ↗
+          </Link>
           <div className="px-2 py-1 border border-[#EAB308]/40 bg-[#EAB308]/10 text-[#EAB308] rounded-sm">
             ET AI Hackathon 2026
           </div>
