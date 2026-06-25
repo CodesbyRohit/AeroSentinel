@@ -3,7 +3,7 @@ import axios from "axios";
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
 
-const client = axios.create({ baseURL: API, timeout: 30000 });
+const client = axios.create({ baseURL: API, timeout: 45000 });
 
 export const api = {
   kpis: () => client.get("/kpis").then((r) => r.data),
@@ -18,6 +18,21 @@ export const api = {
   alerts: () => client.get("/alerts").then((r) => r.data),
   registry: (wardId) =>
     client.get(`/registry?ward_id=${wardId}`).then((r) => r.data),
+  // v2
+  impact: () => client.get("/impact").then((r) => r.data),
+  risks: () => client.get("/risks").then((r) => r.data),
+  riskNarrative: (wardId) =>
+    client.get(`/risk-narrative/${wardId}`).then((r) => r.data),
+  polluters: (limit = 12, badge = null) =>
+    client
+      .get(`/polluters?limit=${limit}${badge ? `&badge=${badge}` : ""}`)
+      .then((r) => r.data),
+  notice: (recId) => client.get(`/notice/${recId}`).then((r) => r.data),
+  sensor: (wardId) => client.get(`/sensors/${wardId}`).then((r) => r.data),
+  copilot: (question, wardId = null) =>
+    client.post("/copilot/chat", { question, ward_id: wardId }).then((r) => r.data),
+  submitComplaint: (payload) => client.post("/complaints", payload).then((r) => r.data),
+  listComplaints: () => client.get("/complaints").then((r) => r.data),
 };
 
 export const bandColor = (band) =>
@@ -39,3 +54,12 @@ export const bandLabel = (band) =>
     severe: "Severe",
     hazardous: "Hazardous",
   }[band] || band);
+
+export const aqiBand = (aqi) => {
+  if (aqi <= 50) return "good";
+  if (aqi <= 100) return "moderate";
+  if (aqi <= 200) return "poor";
+  if (aqi <= 300) return "unhealthy";
+  if (aqi <= 400) return "severe";
+  return "hazardous";
+};

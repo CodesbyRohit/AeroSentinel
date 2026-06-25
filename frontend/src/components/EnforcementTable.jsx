@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { ChevronRight, Hammer, Factory, Flame, Truck, Shield } from "lucide-react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
+import { NoticeDialog } from "@/components/NoticeDialog";
 
 const TYPE_META = {
   construction_permit: { icon: Hammer, label: "Construction" },
@@ -107,19 +108,24 @@ export const EnforcementTable = () => {
                     <td className="py-3 text-right font-mono-data tabular text-xs">{r.priority_score}</td>
                     <td className="py-3 text-right font-mono-data tabular text-xs text-white/60">{r.eta_hours}h</td>
                     <td className="px-5 py-3 text-right">
-                      {r.status === "pending" ? (
-                        <button
-                          data-testid={`ack-btn-${r.id}`}
-                          onClick={(e) => { e.stopPropagation(); ack(r.id); }}
-                          className="font-mono-data text-[10px] uppercase tracking-wider px-3 py-1.5 bg-white text-black hover:bg-[#EAB308] rounded-sm transition-colors"
-                        >
-                          Dispatch ↗
-                        </button>
-                      ) : (
-                        <span className="font-mono-data text-[10px] uppercase tracking-wider px-3 py-1.5 border border-[#22C55E]/40 text-[#22C55E] bg-[#22C55E]/10 rounded-sm">
-                          ✓ Acked
+                      <div className="flex items-center gap-1.5 justify-end">
+                        <span onClick={(e) => e.stopPropagation()}>
+                          <NoticeDialog recId={r.id} recLabel={`${r.ward_name} · ${meta.label}`} />
                         </span>
-                      )}
+                        {r.status === "pending" ? (
+                          <button
+                            data-testid={`ack-btn-${r.id}`}
+                            onClick={(e) => { e.stopPropagation(); ack(r.id); }}
+                            className="font-mono-data text-[10px] uppercase tracking-wider px-3 py-1.5 bg-white text-black hover:bg-[#EAB308] rounded-sm transition-colors"
+                          >
+                            Dispatch ↗
+                          </button>
+                        ) : (
+                          <span className="font-mono-data text-[10px] uppercase tracking-wider px-3 py-1.5 border border-[#22C55E]/40 text-[#22C55E] bg-[#22C55E]/10 rounded-sm">
+                            ✓ Acked
+                          </span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                   {isOpen && (

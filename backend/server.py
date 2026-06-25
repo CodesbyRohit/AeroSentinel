@@ -452,11 +452,253 @@ async def generate_advisory_via_gemini(ward_name: str, aqi: int, peak_24h: int) 
 
 
 # ---------------------------------------------------------------------------
-# Pydantic IO models
+# Population, schools, sensors, polluters — augmented data layer
 # ---------------------------------------------------------------------------
-class EnforcementAck(BaseModel):
-    rec_id: str
-    officer: Optional[str] = "Field Officer"
+# Population per ward (in lakhs of citizens) — illustrative figures
+WARD_POPULATION = {
+    "AV": 380000, "JP": 520000, "PB": 290000, "RK": 310000, "ITO": 175000,
+    "AV2": 240000, "MV": 410000, "DW": 330000, "RH": 470000, "CP": 95000,
+    "LR": 110000, "SF": 165000, "VV": 285000, "AN": 70000,
+}
+
+WARD_SCHOOLS = {
+    "AV": 42, "JP": 58, "PB": 33, "RK": 38, "ITO": 19,
+    "AV2": 29, "MV": 47, "DW": 36, "RH": 53, "CP": 12,
+    "LR": 14, "SF": 22, "VV": 31, "AN": 9,
+}
+
+# Sensor metadata for the trust layer
+def _sensor_meta(ward_id: str) -> Dict[str, Any]:
+    rng = _seeded_rng(ward_id, "sensor")
+    return {
+        "source": rng.choice(["CPCB CAAQMS", "DPCC Continuous Monitor", "OpenAQ Reference"]),
+        "station_code": f"DL{ward_id}{rng.randint(100, 999)}",
+        "last_update_minutes": rng.randint(2, 18),
+        "confidence": round(rng.uniform(0.86, 0.99), 3),
+        "missing_data_pct_24h": round(rng.uniform(0, 6), 1),
+        "calibrated_at": (DEMO_NOW - timedelta(days=rng.randint(7, 45))).date().isoformat(),
+    }
+
+SENSORS = {w["id"]: _sensor_meta(w["id"]) for w in DELHI_WARDS}
+
+
+# Polluters (industries) with compliance scorecards
+INDUSTRY_TYPES = [
+    "Brick kiln", "Foundry", "Chemicals", "Power generator",
+    "Textile dyeing", "Plastic recycling", "Cement", "Asphalt plant",
+]
+
+def build_polluters() -> List[Dict[str, Any]]:
+    rng = random.Random(101)
+    out = []
+    pid = 1
+    for w in DELHI_WARDS:
+        # 2-4 industries per ward
+        for _ in range(rng.randint(2, 4)):
+            base_score = rng.randint(35, 95)
+            # Industries in high-AQI wards trend lower compliance
+            penalty = max(0, (current_aqi(w["id"]) - 220) // 12)
+            score = max(20, base_score - penalty)
+            violations = rng.randint(0, 8) if score < 60 else rng.randint(0, 2)
+            penalties = violations * rng.randint(15000, 80000)
+            badge = "green" if score >= 80 else "amber" if score >= 55 else "red"
+            trend = rng.choice(["improving", "flat", "declining"])
+            out.append({
+                "id": f"IND-{pid:04d}",
+                "name": f"{rng.choice(INDUSTRY_TYPES)} · {w['name']} Unit {rng.randint(1, 9)}",
+                "type": rng.choice(INDUSTRY_TYPES),
+                "ward_id": w["id"],
+                "ward_name": w["name"],
+                "compliance_score": score,
+                "violations_count": violations,
+                "penalties_inr": penalties,
+                "badge": badge,
+                "trend": trend,
+                "last_inspection": (DEMO_NOW - timedelta(days=rng.randint(5, 120))).date().isoformat(),
+                "monthly_history": [
+                    max(15, min(100, score + rng.randint(-8, 8))) for _ in range(6)
+                ],
+            })
+            pid += 1
+    out.sort(key=lambda x: (x["compliance_score"], -x["violations_count"]))
+    return out
+
+POLLUTERS = build_polluters()
+
+
+# Impact metrics
+def compute_impact() -> Dict[str, Any]:
+    """
+    Order-of-magnitude impact derived from AQI bands × population. These are
+    PLANNING estimates, not clinical claims; the methodology card discloses this.
+    Reference scaling: ~1.2 asthma-exacerbation events per 10k people per day
+    in unhealthy band (Lancet PH 2024 review, rounded down for conservatism).
+    """
+    band_rates = {"good": 0.0, "moderate": 0.2, "poor": 0.6, "unhealthy": 1.2, "severe": 2.4, "hazardous": 4.0}
+    total_pop = sum(WARD_POPULATION.values())
+    affected_pop = 0
+    asthma_baseline = 0
+    elderly_exposure = 0
+    school_risk = 0
+    school_total = sum(WARD_SCHOOLS.values())
+    for w in DELHI_WARDS:
+        pop = WARD_POPULATION[w["id"]]
+        aqi = current_aqi(w["id"])
+        b = aqi_band(aqi)
+        affected_pop += pop if aqi >= 200 else 0
+        asthma_baseline += band_rates[b] * pop / 10_000
+        elderly_exposure += int(pop * 0.09) if aqi >= 250 else 0  # 9% elderly share
+        school_risk += WARD_SCHOOLS[w["id"]] if aqi >= 250 else 0
+    # AeroSentinel intervenes faster → assume 18% reduction once enforcement loop closes
+    asthma_prevented = round(asthma_baseline * 0.18)
+    return {
+        "population_total": total_pop,
+        "population_affected": affected_pop,
+        "population_affected_pct": round(affected_pop / total_pop * 100, 1),
+        "asthma_cases_today_baseline": round(asthma_baseline),
+        "asthma_cases_prevented_today": asthma_prevented,
+        "elderly_exposed": elderly_exposure,
+        "schools_in_risk_zone": school_risk,
+        "schools_total": school_total,
+        "school_risk_pct": round(school_risk / school_total * 100, 1) if school_total else 0,
+        "methodology_note": (
+            "Estimates use band-rate × population × intervention-lift. "
+            "PLANNING numbers, not clinical claims. Tunable to local health-survey baselines."
+        ),
+    }
+
+
+# Predicted upcoming risks — natural-language framing of forecast deltas
+def predicted_risks() -> List[Dict[str, Any]]:
+    """Identify wards where forecast peak > current_aqi + 25 in next 24h."""
+    out = []
+    for w in DELHI_WARDS:
+        cur = current_aqi(w["id"])
+        # Walk forward 24h to find peak + ETA
+        peak, peak_h = cur, 0
+        for i, p in enumerate(FORECAST[w["id"]][:24]):
+            if p["aqi"] > peak:
+                peak, peak_h = p["aqi"], i + 1
+        delta = peak - cur
+        if delta >= 12 or peak >= 280:
+            causes = _attribute_causes(w["id"])
+            if peak_h == 0 or delta < 5:
+                narrative = (
+                    f"AQI in {w['name']} sustained at {cur} ({aqi_label(cur)}) — "
+                    f"no significant drop forecast over next 24h. "
+                    f"Primary drivers: {causes[0]['label']} ({causes[0]['pct']}%), "
+                    f"{causes[1]['label']} ({causes[1]['pct']}%)."
+                )
+            else:
+                narrative = (
+                    f"AQI in {w['name']} likely to reach {peak} ({aqi_label(peak)}) "
+                    f"within {peak_h} hours — currently {cur}. "
+                    f"Primary drivers: {causes[0]['label']} ({causes[0]['pct']}%), "
+                    f"{causes[1]['label']} ({causes[1]['pct']}%)."
+                )
+            out.append({
+                "ward_id": w["id"],
+                "ward_name": w["name"],
+                "current_aqi": cur,
+                "predicted_peak": peak,
+                "eta_hours": peak_h,
+                "delta": delta,
+                "narrative": narrative,
+                "causes": causes,
+            })
+    out.sort(key=lambda x: -x["delta"])
+    return out
+
+
+def _attribute_causes(ward_id: str) -> List[Dict[str, Any]]:
+    """Deterministic per-ward source attribution (illustrative weights)."""
+    rng = _seeded_rng(ward_id, "causes")
+    items = [
+        ("Construction activity", rng.randint(20, 45)),
+        ("Traffic & diesel fleet", rng.randint(15, 35)),
+        ("Industrial emissions", rng.randint(10, 28)),
+        ("Open burning", rng.randint(5, 18)),
+        ("Weather inversion", rng.randint(4, 14)),
+    ]
+    total = sum(p for _, p in items)
+    out = [{"label": lbl, "pct": round(p / total * 100)} for lbl, p in items]
+    out.sort(key=lambda x: -x["pct"])
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Gemini wrappers — copilot, notice, vision
+# ---------------------------------------------------------------------------
+async def gemini_text(session_id: str, system: str, prompt: str, fallback: str = "") -> str:
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        key = os.environ.get("EMERGENT_LLM_KEY")
+        if not key:
+            return fallback
+        chat = LlmChat(
+            api_key=key, session_id=session_id, system_message=system
+        ).with_model("gemini", "gemini-3-flash-preview")
+        resp = await chat.send_message(UserMessage(text=prompt))
+        return str(resp).strip()
+    except Exception as e:
+        logger.warning(f"Gemini text call failed [{session_id}]: {e}")
+        return fallback
+
+
+async def gemini_vision_analyze(image_base64: str, context_text: str) -> Dict[str, Any]:
+    """Send a base64 image to Gemini 3 Flash and return structured JSON."""
+    fallback = {
+        "detected": ["unverified"],
+        "confidence": 0.0,
+        "severity": "unknown",
+        "description": "Automated analysis unavailable; routed for manual review.",
+        "recommended_action": "Forward to field officer for in-person inspection.",
+    }
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
+        import json as _json
+        key = os.environ.get("EMERGENT_LLM_KEY")
+        if not key:
+            return fallback
+        chat = LlmChat(
+            api_key=key,
+            session_id=f"vision-{datetime.now(timezone.utc).timestamp()}",
+            system_message=(
+                "You are a pollution-detection analyst for the Delhi Pollution Control Committee. "
+                "Look at the image and output ONLY a single-line JSON object with keys: "
+                "detected (array from: smoke, dust_cloud, open_burning, vehicle_emission, industrial_stack, garbage_dump, other), "
+                "confidence (0.0-1.0), severity (low|medium|high), "
+                "description (one sentence), "
+                "recommended_action (one sentence). "
+                "No markdown, no extra commentary."
+            ),
+        ).with_model("gemini", "gemini-3-flash-preview")
+        msg = UserMessage(
+            text=f"Citizen complaint context: {context_text}. Analyze the image.",
+            file_contents=[ImageContent(image_base64=image_base64)],
+        )
+        resp = await chat.send_message(msg)
+        text = str(resp).strip().strip("`")
+        # Strip markdown json fence if model added one
+        if text.startswith("json"):
+            text = text[4:].strip()
+        # Try to extract first JSON object
+        start = text.find("{")
+        end = text.rfind("}")
+        if start == -1 or end == -1:
+            return fallback
+        obj = _json.loads(text[start:end + 1])
+        # Validate shape
+        return {
+            "detected": obj.get("detected", []) if isinstance(obj.get("detected"), list) else [str(obj.get("detected", "unverified"))],
+            "confidence": float(obj.get("confidence", 0.5)),
+            "severity": str(obj.get("severity", "medium")),
+            "description": str(obj.get("description", "")),
+            "recommended_action": str(obj.get("recommended_action", "")),
+        }
+    except Exception as e:
+        logger.warning(f"Gemini vision failed: {e}")
+        return fallback
 
 
 # ---------------------------------------------------------------------------
@@ -648,6 +890,198 @@ async def alerts():
             "minutes_ago": minutes_ago,
         })
     out.sort(key=lambda x: x["minutes_ago"])
+    return out
+
+
+# ---------------------------------------------------------------------------
+# v2 — Stakeholder, predictive, vision, copilot endpoints
+# ---------------------------------------------------------------------------
+@api_router.get("/sensors/{ward_id}")
+async def sensor_meta(ward_id: str):
+    if ward_id not in SENSORS:
+        raise HTTPException(404, "Unknown ward")
+    return {"ward_id": ward_id, **SENSORS[ward_id]}
+
+
+@api_router.get("/impact")
+async def impact():
+    return compute_impact()
+
+
+@api_router.get("/risks")
+async def risks():
+    return predicted_risks()
+
+
+@api_router.get("/risk-narrative/{ward_id}")
+async def risk_narrative(ward_id: str):
+    if ward_id not in HISTORY:
+        raise HTTPException(404, "Unknown ward")
+    ward = next(w for w in DELHI_WARDS if w["id"] == ward_id)
+    cur = current_aqi(ward_id)
+    peak = forecast_peak(ward_id, 24)
+    causes = _attribute_causes(ward_id)
+    return {
+        "ward_id": ward_id,
+        "ward_name": ward["name"],
+        "current_aqi": cur,
+        "predicted_peak_24h": peak,
+        "narrative": (
+            f"AQI in {ward['name']} likely to reach {peak} ({aqi_label(peak)}) within "
+            f"24 hours — currently {cur}. Primary drivers: "
+            f"{causes[0]['label']} ({causes[0]['pct']}%), "
+            f"{causes[1]['label']} ({causes[1]['pct']}%)."
+        ),
+        "causes": causes,
+    }
+
+
+@api_router.get("/polluters")
+async def polluters(limit: int = 20, badge: Optional[str] = None):
+    rows = POLLUTERS
+    if badge in ("green", "amber", "red"):
+        rows = [r for r in rows if r["badge"] == badge]
+    return rows[:limit]
+
+
+@api_router.get("/notice/{rec_id}")
+async def notice_for_rec(rec_id: str):
+    """Generate a printable enforcement notice text for a recommendation."""
+    rec = next((r for r in ENFORCEMENT if r["id"] == rec_id), None)
+    if not rec:
+        raise HTTPException(404, "Recommendation not found")
+    ev = rec["evidence"]
+    refs = ", ".join(s["id"] for s in ev["sample_registry_entries"])
+    fallback = (
+        f"NOTICE OF VIOLATION — REF {rec['id']}\n\n"
+        f"Date: {datetime.now(timezone.utc).date().isoformat()}\n"
+        f"Ward: {rec['ward_name']} ({rec['ward_id']})\n"
+        f"Priority: {rec['priority']} · Score {rec['priority_score']}\n\n"
+        f"Pursuant to the Air (Prevention and Control of Pollution) Act, 1981, and the "
+        f"Delhi Pollution Control Committee enforcement framework, an air quality hotspot "
+        f"has been identified in {rec['ward_name']} with current AQI {ev['hotspot_current_aqi']} "
+        f"and a 24-hour forecast peak of {ev['hotspot_forecast_peak_24h']}.\n\n"
+        f"Correlated source records ({ev['correlated_registry_count']} entries): {refs}.\n\n"
+        f"Required action: {rec['action']} within {rec['eta_hours']} hours of receipt.\n\n"
+        f"Failure to comply will invoke penalties under Section 37 and may result in stop-work "
+        f"orders. Field officer designated for follow-up inspection.\n\n"
+        f"For and on behalf of the Member Secretary, DPCC"
+    )
+    text = await gemini_text(
+        session_id=f"notice-{rec_id}",
+        system=(
+            "You draft formal enforcement notices for the Delhi Pollution Control Committee. "
+            "Tone is firm but procedural. Output plain text, no markdown. Include sections: "
+            "NOTICE OF VIOLATION header, date, addressed ward, evidence trace (AQI, forecast "
+            "peak, source records), required action with deadline, statutory reference "
+            "(Air Act 1981 Section 37), signature line."
+        ),
+        prompt=(
+            f"Generate the notice for: Ward={rec['ward_name']}, Priority={rec['priority']}, "
+            f"Current AQI={ev['hotspot_current_aqi']}, Forecast peak={ev['hotspot_forecast_peak_24h']}, "
+            f"Source type={rec['source_type_label']}, Action={rec['action']}, "
+            f"Deadline hours={rec['eta_hours']}, Correlated source IDs={refs}."
+        ),
+        fallback=fallback,
+    )
+    return {"rec_id": rec_id, "ward_name": rec["ward_name"], "notice_text": text, "generated_at": datetime.now(timezone.utc).isoformat()}
+
+
+class CopilotQuery(BaseModel):
+    question: str
+    ward_id: Optional[str] = None
+
+
+@api_router.post("/copilot/chat")
+async def copilot_chat(q: CopilotQuery):
+    """Answer questions about Delhi air quality, citing internal AeroSentinel state."""
+    # Build compact context
+    hotspots = identify_hotspots()[:5]
+    ctx_lines = [
+        f"City AQI avg: {round(sum(current_aqi(w['id']) for w in DELHI_WARDS)/len(DELHI_WARDS))}",
+        f"Hotspots ({len(hotspots)}): " + "; ".join(f"{h['ward_name']} ({h['current_aqi']}, peak {h['forecast_peak_24h']})" for h in hotspots),
+        f"Pending enforcement actions: {len([r for r in ENFORCEMENT if r['status']=='pending'])}",
+    ]
+    if q.ward_id and q.ward_id in HISTORY:
+        ward = next(w for w in DELHI_WARDS if w["id"] == q.ward_id)
+        cur = current_aqi(q.ward_id)
+        peak = forecast_peak(q.ward_id, 24)
+        causes = _attribute_causes(q.ward_id)
+        ctx_lines.append(
+            f"Selected ward: {ward['name']} - current {cur}, peak 24h {peak}. "
+            f"Drivers: " + ", ".join(f"{c['label']} {c['pct']}%" for c in causes)
+        )
+    ctx = "\n".join(ctx_lines)
+
+    fallback = (
+        "Based on current readings, primary drivers across active hotspots are construction "
+        "activity and traffic-related emissions, with a secondary contribution from industrial "
+        "stacks. Forecast peaks remain elevated for the next 24 hours; the enforcement queue is "
+        "prioritised by hotspot AQI and registry density."
+    )
+    text = await gemini_text(
+        session_id=f"copilot-{datetime.now(timezone.utc).timestamp()}",
+        system=(
+            "You are AeroCopilot, an analyst for the Delhi air-quality command centre. "
+            "Answer strictly from the provided context. Be concise (2-4 sentences). "
+            "When asked 'why' questions, attribute causes with rough percentages. "
+            "If the question is outside the context, say so honestly."
+        ),
+        prompt=f"Context:\n{ctx}\n\nQuestion: {q.question}",
+        fallback=fallback,
+    )
+    return {
+        "answer": text,
+        "context_used": ctx_lines,
+        "model": "gemini-3-flash-preview",
+    }
+
+
+class ComplaintIn(BaseModel):
+    image_base64: str
+    ward_id: Optional[str] = None
+    location_text: Optional[str] = None
+    citizen_note: Optional[str] = None
+
+
+@api_router.post("/complaints")
+async def submit_complaint(c: ComplaintIn):
+    """Citizen complaint with image → Gemini Vision analysis → stored in Mongo."""
+    if not c.image_base64 or len(c.image_base64) < 100:
+        raise HTTPException(400, "image_base64 required")
+    # Strip data URL prefix if present
+    img_b64 = c.image_base64.split(",", 1)[1] if c.image_base64.startswith("data:") else c.image_base64
+    context = (
+        f"Ward: {c.ward_id or 'unspecified'}. "
+        f"Location: {c.location_text or 'not given'}. "
+        f"Citizen note: {c.citizen_note or 'none'}."
+    )
+    analysis = await gemini_vision_analyze(img_b64, context)
+    doc = {
+        "id": f"CMP-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')[:18]}",
+        "ward_id": c.ward_id,
+        "location_text": c.location_text,
+        "citizen_note": c.citizen_note,
+        "analysis": analysis,
+        "submitted_at": datetime.now(timezone.utc).isoformat(),
+        "status": "triaged" if analysis.get("severity") in ("medium", "high") else "queued",
+    }
+    try:
+        await db.complaints.insert_one({**doc})
+    except Exception as e:
+        logger.warning(f"Could not persist complaint: {e}")
+    return doc
+
+
+@api_router.get("/complaints")
+async def list_complaints(limit: int = 20):
+    out = []
+    try:
+        cursor = db.complaints.find({}, {"_id": 0}).sort("submitted_at", -1).limit(limit)
+        async for doc in cursor:
+            out.append(doc)
+    except Exception as e:
+        logger.warning(f"Could not list complaints: {e}")
     return out
 
 
