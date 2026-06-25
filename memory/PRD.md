@@ -3,56 +3,50 @@
 **Project:** AI-Powered Urban Air Quality Intelligence for Smart City Intervention (Delhi)
 **Target event:** Economic Times AI Hackathon 2026
 **Phase:** Phase 2 — Build Sprint Prototype
-**Status:** v1.0 — MVP shipped 2026-02-12
-
-## Original Problem Statement
-See the full PRD attached to the original task. Two-person team, ~4-week timeline.
-Scope locked to **two technical cores + one demo layer**:
-
-1. **Hyperlocal Predictive AQI Forecasting Agent** (Core #1)
-2. **Enforcement Intelligence & Prioritisation Agent** (Core #2)
-3. **Citizen Health Risk Advisory** (demo layer over Core #1)
-
-Explicitly **out of scope**: Geospatial Source Attribution Engine, Multi-City Comparative Dashboard.
+**Status:** v2.0 — Major scope expansion shipped 2026-02-12
 
 ## Architecture
 - **Backend** — FastAPI (`/app/backend/server.py`)
-  - 14 illustrative Delhi wards with seeded synthetic AQI time-series
-  - Hyperlocal forecasting model (diurnal + weekly profile blend) → 24/48/72h horizons
-  - Persistence baseline + RMSE comparison (city avg model 10.4 vs persistence 14.2, **−26.8%**)
+  - 14 Delhi wards · seeded synthetic AQI time-series · OpenAQ live-blend env-gated
+  - Forecast model (diurnal + weekly profile blend) → 24/48/72h horizons
+  - RMSE vs persistence baseline (~10.4 vs ~14.2, **−27%**) — judge-verifiable
   - Synthetic registry: construction permits, industrial stacks, waste-burning zones, diesel fleet routes
-  - Enforcement engine: hotspots × registry correlation → P1/P2/P3 prioritised recommendations with full evidence trace
-  - Citizen advisory via Gemini 3 Flash (EN + Hindi), cached, with deterministic fallback
-- **Frontend** — React (CRA) + Tailwind + shadcn/ui + Recharts
-  - Dashboard at `/` ("Mission Control" dark aesthetic, Cabinet Grotesk / IBM Plex Sans / JetBrains Mono)
-  - Ward surveillance map (SVG, click-to-drill), KPI strip, forecast chart, enforcement table, advisory panel, alert feed
-- **LLM** — Gemini 3 Flash via Emergent Universal Key (`EMERGENT_LLM_KEY`).
+  - Enforcement engine: hotspots × registry → P1/P2/P3 recommendations with full evidence
+  - **v2** — Polluter compliance scorecards (industries, green/amber/red badges, penalty history, trend)
+  - **v2** — Impact engine (asthma cases prevented, school risk, elderly exposure, population affected)
+  - **v2** — Predictive risk narrative + source attribution per ward
+  - **v2** — Trust layer (sensor metadata: source, station code, freshness, confidence, missing data %)
+  - **v2** — AeroCopilot chat (Gemini 3 Flash) with state-aware context
+  - **v2** — Citizen complaint flow with Gemini 3 Flash **Vision** image analysis → MongoDB
+  - **v2** — Auto-drafted enforcement notices (Gemini text per recommendation)
+  - MongoDB persistence for enforcement acknowledgements
 
-## Personas
-- **City Air Quality Officer** — needs ranked enforcement actions with evidence trace
-- **Field Inspector** — receives dispatch with ETA + sample source records
-- **Citizen** — bilingual advisory for their ward
+- **Frontend** — React + Tailwind + shadcn/ui + Recharts
+  - Multi-portal routing:
+    - `/` Landing ("Why This Matters", impact + immediate risk + portal cards)
+    - `/command` Command Center (pollution war room — full operator dashboard)
+    - `/citizen` Citizen Portal (ward selector, advisory, complaint upload, trust layer)
+    - `/inspector` Inspector Portal (dispatch list, notice generation, mark-done)
+    - `/pitch` Slide deck for judging
+  - Global AeroCopilot drawer (Gemini chat) on every stakeholder route
+  - Mission-control dark aesthetic: Cabinet Grotesk / IBM Plex Sans / JetBrains Mono / Noto Devanagari
 
-## Core Requirements (static)
-- Ward-level resolution, 24–72hr forecast horizon
-- RMSE vs persistence baseline (PRD §5.1)
-- Every enforcement recommendation traceable to source data
-- ≥2 advisory languages (English + Hindi delivered)
-- Disclosed synthetic data badge on UI
+- **LLM** — Gemini 3 Flash (text + vision) via Emergent Universal Key
 
 ## Implemented (2026-02-12)
-- `/api/kpis`, `/api/wards`, `/api/forecast/{id}`, `/api/hotspots`, `/api/registry`, `/api/enforcement`, `/api/enforcement/{id}/acknowledge`, `/api/advisory/{id}`, `/api/alerts`
-- All 5 KPI cards, ward map, forecast chart (history + forecast + persistence + held-out actual + 300 hotspot threshold), enforcement table with expandable evidence, advisory panel (EN/Hindi toggle), alert feed
-- `data-testid` on every interactive element
+v2 API additions: `/api/impact`, `/api/risks`, `/api/risk-narrative/{ward_id}`, `/api/polluters`, `/api/notice/{rec_id}`, `/api/copilot/chat`, `/api/complaints` (POST + GET), `/api/sensors/{ward_id}`, `/api/enforcement/reset`.
+
+v2 UI: Landing, Command Center (with risk narrative + trust badges + polluter leaderboard + notice dialogs), Citizen portal (with complaint form), Inspector portal (mobile-style cards), Copilot drawer (suggested questions + context display).
 
 ## Backlog (P1/P2)
-- **P1**: Drop-in real OpenAQ / CPCB feed in `generate_series()` (currently synthetic)
-- **P1**: Persist `ENFORCEMENT` acknowledge state to MongoDB so it survives backend restart
-- **P2**: Add second city port (Mumbai) — wire to the existing `DELHI_WARDS` shape
-- **P2**: PDF/CSV export of recommendations for field dispatch
+- **P1**: Drop-in real OpenAQ feed for historical trace (set `OPENAQ_API_KEY`)
+- **P1**: PDF generation for enforcement notices (currently text + browser print)
+- **P2**: Inspector live GPS / map view
 - **P2**: Marathi + Tamil advisory languages
+- **P2**: WhatsApp Business push for citizen advisories
+- **P2**: Refactor server.py into modules (gemini_clients, registry, routes_v2)
+- **P2**: Multi-worker safe state (current globals only safe on single worker)
 
 ## Next Tasks
-1. Run testing agent (backend API + frontend smoke).
-2. Address any blocking failures.
-3. Ship demo video + pitch deck (out of scope for this build session).
+- Record demo video per `/app/memory/DEMO_VIDEO_SCRIPT.md`
+- Export `/pitch` to PDF for submission portal

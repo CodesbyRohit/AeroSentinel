@@ -28,7 +28,19 @@ export const NoticeDialog = ({ recId, recLabel }) => {
 
   const onCopy = async () => {
     if (!data) return;
-    await navigator.clipboard.writeText(data.notice_text);
+    try {
+      await navigator.clipboard.writeText(data.notice_text);
+    } catch {
+      // Fallback for iframes / restricted contexts
+      const ta = document.createElement("textarea");
+      ta.value = data.notice_text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); } catch { /* ignore */ }
+      document.body.removeChild(ta);
+    }
     setCopied(true);
     toast.success("Notice copied to clipboard");
     setTimeout(() => setCopied(false), 2000);
