@@ -1,0 +1,30 @@
+{
+  "summary": "Iteration 5 (AeroSentinel v4 — geospatial + simulate-then-execute) verified end-to-end. Backend: 11/11 new pytest pass + 27/27 prior regression — 38/38 total. /api/source-attribution/AV returns Anand Vihar with confidence 0.8 (0-1), causes array, sources object keyed by cause label. /api/satellite/fires returns 11 synthetic_firms_format detections each with latitude/longitude/brightness/satellite/confidence/frp/cluster. /api/interventions/catalog returns all 7 levers with id/driver/lever/lead_time_h/label/queue. POST /api/simulate-intervention returns expected_total_reduction>0, projected_aqi<forecast_peak_24h, confidence 0-1, breakdown of 3 items. POST /api/execute-plan returns created_count=2 with PLAN-* ids, status='dispatched', and the records appear in subsequent GET /api/enforcement. /api/agents returns 6 agents (forecast/attribution/enforcement/advisory/vision/copilot) with proper orchestration string. Regressions /api/alerts, /api/sensors/AV, /api/registry — all 200. Frontend (Playwright on preview URL): Landing renders ResponseTimeHero above CopilotHero with rt-before='48h', rt-after='5.4h', rt-improvement='−88.8%'; AgentBadges section shows all 6 agent-<id> cards under 'Multi-Agent Architecture'. Command Center: GeospatialMap data-testid present with all 6 layer-toggle buttons (aqi/construction/industrial/burning/fleet/satellite); FIRMS label shows '(11)' matching backend; AttributionCard 'ATTRIBUTION · ANAND VIHAR' visible in right column with confidence 84% and 5 cause rows; toggling layer-toggle-construction visibly hides the hammer icons on the map (verified by screenshot comparison — construction bubbles present before, absent after). InterventionSimulator data-testid present below the AQI/RecommendedActions row with 7 sim-toggle-<id> checkboxes, 3 selected by default; toggling industrial_load_cut re-triggers /api/simulate-intervention and changes sim-reduction (−46→−55) and sim-projected (288→279). Execute Plan button uses 'bg-white text-black hover:bg-[#22C55E]' classes (no yellow); clicking creates exec-result with 4 exec-rec-PLAN-* cards and a sonner toast 'Plan executed — 4 dispatches sent · Queues: Traffic Checkpoint, Industrial Audit, Field Dispatch, Construction Inspection'.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_v4_geo_simulate.py",
+    "/app/test_reports/pytest/v4_results.xml"
+  ],
+  "action_items": [
+    "OPTIONAL: server.py is now 1432 lines (was 1170 in iter-4). Past the 700-line guideline — strongly recommend splitting into modules (geospatial.py, intervention.py, agents.py, registry.py, kpis.py, recommendations.py) before adding more features.",
+    "OPTIONAL: Execute Plan with all 7 levers selected will create 7 PLAN-* records each call and these persist to MongoDB enforcement_state — over a long demo session the enforcement table will grow large. Consider a TTL or cap on auto-planned records, or have /api/enforcement/reset also purge PLAN-* rows."
+  ],
+  "critical_code_review_comments": [
+    "INTERVENTION_LEVERS table is now in server.py — good that it is a module constant and shared by simulate + execute + catalog, but it should also drive /api/recommended-actions/{ward} so the simulator and the priority-interventions panel can never drift apart. Currently the recommended-actions endpoint has its own hardcoded LEVER table inside the route (flagged in iter-4) and they share the same lever coefficients only by accident.",
+    "Diminishing-returns penalty in /api/simulate-intervention is a flat −4 per duplicate driver — this is reasonable for a demo but the formula is opaque to judges. Surface it in the response or the simulator UI's diminishing-returns note so reviewers can audit the heuristic.",
+    "PLAN-* rec ids use timestamp + index ('PLAN-HHMMSS-NN'). Two execute-plan calls inside the same second on the same ward will collide and the second call's upsert will overwrite the first in MongoDB. Low risk in the demo but should add a short uuid suffix for safety.",
+    "GeospatialMap.jsx fetches /api/registry without filters and renders all source bubbles for the entire city on initial load — fine at current registry size, but if registry grows past a few hundred entries this should be lat/lng-bbox filtered."
+  ],
+  "updated_files": ["/app/backend/tests/test_v4_geo_simulate.py"],
+  "success_rate": {"backend": "100% (11/11 new + 27/27 regression = 38/38)", "frontend": "100% on all 6 new behaviours"},
+  "test_credentials": "N/A — no auth",
+  "seed_data_creation": "Each execute-plan call inserts PLAN-<HHMMSS>-NN records into in-memory ENFORCEMENT and into MongoDB enforcement_state. Test added 4 such records during the Command Center UI run; /api/enforcement/reset purges only the original 13 seeded recs (auto-planned PLAN-* persist via Mongo upsert).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Three pytest suites now exist: test_v2_endpoints.py (iter-3), test_v3_polish.py (iter-4), test_v4_geo_simulate.py (iter-5). FIRMS detection count is 11 (deterministic seed 7777). Default 3 interventions selected in simulator are suspend_construction, restrict_diesel, burning_cease_notice. Execute Plan with default 3 selections produces 3 PLAN records; toggling industrial_load_cut on first then executing produces 4. The AttributionCard inside GeospatialMap is gated by 'hidden lg:block' (>=1024px viewport required to see it). Layer toggle buttons keep aqi/construction/industrial/burning/fleet/satellite as data-testid suffixes."
+}

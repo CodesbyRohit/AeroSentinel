@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { PortalNav } from "@/components/PortalNav";
 import { KPIStrip } from "@/components/KPIStrip";
-import { WardMap } from "@/components/WardMap";
+import { GeospatialMap } from "@/components/GeospatialMap";
 import { ForecastChart } from "@/components/ForecastChart";
 import { EnforcementTable } from "@/components/EnforcementTable";
 import { AdvisoryPanel } from "@/components/AdvisoryPanel";
@@ -13,6 +13,8 @@ import { AQICard } from "@/components/AQICard";
 import { RecommendedActions } from "@/components/RecommendedActions";
 import { HybridDisclosure } from "@/components/HybridDisclosure";
 import { CopilotHero } from "@/components/CopilotHero";
+import { InterventionSimulator } from "@/components/InterventionSimulator";
+import { AgentBadges } from "@/components/AgentBadges";
 import { Copilot } from "@/components/Copilot";
 import { api } from "@/lib/api";
 import { ShieldCheck } from "lucide-react";
@@ -22,6 +24,7 @@ export default function CommandCenter() {
   const [kpis, setKpis] = useState(null);
   const [wards, setWards] = useState([]);
   const [selectedWardId, setSelectedWardId] = useState(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     api.kpis().then(setKpis);
@@ -32,6 +35,7 @@ export default function CommandCenter() {
   }, []);
 
   const selectedWard = wards.find((w) => w.id === selectedWardId);
+  const onPlanExecuted = () => setReloadKey((k) => k + 1);
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white">
@@ -49,7 +53,7 @@ export default function CommandCenter() {
               Command Center.
             </h1>
             <p className="text-sm md:text-base text-white/60 max-w-2xl mt-4 leading-relaxed">
-              Operational dashboard for the city pollution-control officer. Live ward signals, forecast model, prioritised enforcement queue, and AeroCopilot.
+              Operational dashboard for the city pollution-control officer. Geospatial source attribution, satellite thermal anomalies, intervention simulator with one-click Execute Plan, and AeroCopilot.
             </p>
           </div>
           <div className="lg:col-span-4">
@@ -65,13 +69,13 @@ export default function CommandCenter() {
           <ImpactMetrics variant="compact" />
         </section>
 
-        {/* COPILOT HERO — make the LLM front and centre */}
+        {/* COPILOT HERO */}
         <CopilotHero wardId={selectedWardId} />
 
-        {/* Map + alert feed */}
+        {/* GEOSPATIAL MAP + ALERT FEED */}
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-8">
-            <WardMap wards={wards} selectedId={selectedWardId} onSelect={setSelectedWardId} />
+            <GeospatialMap wards={wards} selectedId={selectedWardId} onSelect={setSelectedWardId} />
           </div>
           <div className="lg:col-span-4">
             <AlertFeed />
@@ -88,6 +92,11 @@ export default function CommandCenter() {
           </div>
         </section>
 
+        {/* INTERVENTION SIMULATOR + EXECUTE PLAN */}
+        {selectedWardId && (
+          <InterventionSimulator wardId={selectedWardId} onExecuted={onPlanExecuted} />
+        )}
+
         {/* Forecast + advisory + trust */}
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-8">
@@ -101,8 +110,8 @@ export default function CommandCenter() {
           </div>
         </section>
 
-        {/* Enforcement */}
-        <section>
+        {/* Enforcement — reload on Execute */}
+        <section key={reloadKey}>
           <EnforcementTable />
         </section>
 
@@ -111,11 +120,14 @@ export default function CommandCenter() {
           <PolluterLeaderboard />
         </section>
 
+        {/* Multi-agent badges */}
+        <AgentBadges />
+
         <footer className="pt-10 pb-6 border-t border-white/5 text-xs font-mono-data text-white/40 uppercase tracking-wider flex items-center justify-between flex-wrap gap-3">
-          <span>AeroSentinel · Command Center · v2</span>
+          <span>AeroSentinel · Command Center · v3</span>
           <span className="flex items-center gap-1.5">
             <ShieldCheck className="w-3 h-3 text-[#22C55E]" />
-            Forecast Agent → Enforcement Agent → Advisory Layer (Gemini 3 Flash)
+            Forecast → Attribution → Enforcement → Advisory · Vision · Copilot
           </span>
         </footer>
       </main>
